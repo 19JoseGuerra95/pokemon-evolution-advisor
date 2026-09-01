@@ -61,7 +61,9 @@ const els = {
   scoreValue: document.getElementById('score-value'),
   decisionBadge: document.getElementById('decision-badge'),
   decisionText: document.getElementById('decision-text'),
-  decisionNote: document.getElementById('decision-note')
+  decisionNote: document.getElementById('decision-note'),
+  tcgCards: document.getElementById('tcg-cards'),
+  tcgLoading: document.getElementById('tcg-loading')
 };
 
 let pokemon = [];
@@ -335,10 +337,185 @@ function renderDecision(current, next) {
   els.decisionNote.textContent = `Base-stat total: ${currentTotal} → ${nextTotal}. This recommendation uses the supplied stats only; it does not account for moves, level requirements, items, or personal preference.`;
 }
 
+
+let tcgRequestToken = 0;
+
+function htmlEscape(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function cardMarketPrice(card) {
+  const prices = card?.cardmarket?.prices;
+  if (!prices) return null;
+
+  const candidates = [
+    ['Trend price', prices.trendPrice],
+    ['Average sale', prices.averageSellPrice],
+    ['7-day average', prices.avg7],
+    ['Low price', prices.lowPrice]
+  ];
+
+  for (const [label, value] of candidates) {
+    if (Number.isFinite(Number(value)) && Number(value) > 0) {
+      return {
+        currency: '€',
+        value: Number(value),
+        label,
+        marketplace: 'Cardmarket',
+        updatedAt: card.cardmarket.updatedAt || ''
+      };
+    }
+  }
+  return null;
+}
+
+function tcgPlayerPrice(card) {
+  const groups = card?.tcgplayer?.prices;
+  if (!groups) return null;
+
+  const priority = ['holofoil', 'reverseHolofoil', 'normal', '1stEditionHolofoil', 'unlimitedHolofoil'];
+  const keys = [...priority, ...Object.keys(groups).filter(k => !priority.includes(k))];
+
+  for (const key of keys) {
+    const p = groups[key];
+    if (!p) continue;
+    const value =
+      Number.isFinite(Number(p.market)) && Number(p.market) > 0 ? Number(p.market) :
+      Number.isFinite(Number(p.mid)) && Number(p.mid) > 0 ? Number(p.mid) :
+      Number.isFinite(Number(p.low)) && Number(p.low) > 0 ? Number(p.low) :
+      null;
+
+    if (value !== null) {
+      return {
+        currency: '$',
+        value,
+        label: titleCase(key),
+        marketplace: 'TCGPlayer',
+        updatedAt: card.tcgplayer.updatedAt || ''
+      };
+    }
+  }
+  return null;
+}
+
+function bestCardPrice(card) {
+  return cardMarketPrice(card) || tcgPlayerPrice(card);
+}
+
+function formatPrice(price) {
+  if (!price) return 'Price unavailable';
+  return `${price.currency}${price.value.toFixed(2)}`;
+}
+
+function cardSortValue(card) {
+  const price = bestCardPrice(card);
+  return price ? price.value : -1;
+}
+
+function renderTCGCard(card) {
+  const price = bestCardPrice(card);
+  const marketUrl = card?.cardmarket?.url || card?.tcgplayer?.url || '';
+  const imageUrl = card?.images?.small || card?.images?.large || '';
+  const setName = card?.set?.name || 'Unknown set';
+  const rarity = card?.rarity || 'Rarity not listed';
+  const number = card?.number ? `#${card.number}` : '';
+  const updated = price?.updatedAt ? `Updated ${price.updatedAt}` : 'Update date unavailable';
+
+  const linkOpen = marketUrl
+    ? `<a class="tcg-market-link" href="${htmlEscape(marketUrl)}" target="_blank" rel="noopener noreferrer">Market details</a>`
+    : '';
+
+  return `
+    <article class="tcg-card">
+      <div class="tcg-image-wrap">
+        ${imageUrl ? `<img src="${htmlEscape(imageUrl)}" alt="${htmlEscape(card.name)} trading card" loading="lazy">` : '<div class="tcg-image-fallback">No image</div>'}
+      </div>
+      <div class="tcg-card-info">
+        <div class="tcg-card-topline">
+          <span>${htmlEscape(setName)}</span>
+          <span>${htmlEscape(number)}</span>
+        </div>
+        <h3>${htmlEscape(card.name)}</h3>
+        <p class="tcg-rarity">${htmlEscape(rarity)}</p>
+        <div class="tcg-price-row">
+          <div>
+            <span class="tcg-price-label">${price ? htmlEscape(price.marketplace) : 'Market estimate'}</span>
+            <strong class="tcg-price">${formatPrice(price)}</strong>
+          </div>
+          ${linkOpen}
+        </div>
+        <p class="tcg-price-meta">${price ? htmlEscape(price.label) + ' · ' : ''}${htmlEscape(updated)}</p>
+      </div>
+    </article>`;
+}
+
+async function loadTCGCards(p) {
+  const token = ++tcgRequestToken;
+  els.tcgCards.innerHTML = '';
+  els.tcgLoading.style.display = 'block';
+  els.tcgLoading.textContent = `Loading real ${titleCase(p.pokemon)} cards and market prices…`;
+
+  try {
+    const name = String(p.pokemon || '').replaceAll('"', '\\"');
+    const url = `https://api.pokemontcg.io/v2/cards?q=name:%22${encodeURIComponent(name)}%22&pageSize=60&orderBy=-set.releaseDate`;
+    const response = await fetch(url);
+
+    if (!response.ok) throw new Error(`Pokémon TCG API HTTP ${response.status}`);
+    const payload = await response.json();
+
+    if (token !== tcgRequestToken) return;
+
+    let cards = Array.isArray(payload.data) ? payload.data : [];
+
+    // Prefer exact card names first. If that leaves too few cards, include close variants.
+    const exact = cards.filter(card => String(card.name || '').toLowerCase() === String(p.pokemon || '').toLowerCase());
+    const displayPool = exact.length >= 4 ? exact : cards;
+
+    // Prioritize cards with a price, then newer release dates.
+    displayPool.sort((a, b) => {
+      const aHas = bestCardPrice(a) ? 1 : 0;
+      const bHas = bestCardPrice(b) ? 1 : 0;
+      if (aHas !== bHas) return bHas - aHas;
+      const aDate = a?.set?.releaseDate || '';
+      const bDate = b?.set?.releaseDate || '';
+      return bDate.localeCompare(aDate);
+    });
+
+    // Remove duplicate card IDs and keep a compact set.
+    const seen = new Set();
+    cards = displayPool.filter(card => {
+      if (!card?.id || seen.has(card.id)) return false;
+      seen.add(card.id);
+      return true;
+    }).slice(0, 6);
+
+    els.tcgLoading.style.display = 'none';
+
+    if (!cards.length) {
+      els.tcgCards.innerHTML = '<p class="tcg-message">No Pokémon TCG cards were found for this Pokémon.</p>';
+      return;
+    }
+
+    els.tcgCards.innerHTML = cards.map(renderTCGCard).join('');
+  } catch (error) {
+    console.error(error);
+    if (token !== tcgRequestToken) return;
+    els.tcgLoading.style.display = 'block';
+    els.tcgLoading.textContent = 'Trading-card data is temporarily unavailable. The evolution analysis still works normally.';
+    els.tcgCards.innerHTML = '';
+  }
+}
+
 function renderNoEvolution(p) {
   els.result.classList.remove('hidden');
   els.empty.classList.add('hidden');
   updateTheme(p);
+  loadTCGCards(p);
   els.generation.textContent = p.generation_id ? `Generation ${Math.round(num(p.generation_id))}` : 'Generation —';
   renderEvolutionChain(p);
   fillCard('current', p);
@@ -377,6 +554,7 @@ function renderComparison() {
   els.result.classList.remove('hidden');
   els.empty.classList.add('hidden');
   updateTheme(selected);
+  loadTCGCards(selected);
   els.generation.textContent = selected.generation_id ? `Generation ${Math.round(num(selected.generation_id))}` : 'Generation —';
   renderEvolutionChain(selected);
   fillCard('current', selected);
