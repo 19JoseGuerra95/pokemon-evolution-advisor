@@ -730,3 +730,47 @@ input:focus, select:focus {
   position: relative;
   overflow: hidden;
 }
+
+
+/* SEARCH BAR FINAL */
+.search-controls {
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, .65fr);
+  align-items: stretch;
+}
+.search-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+}
+.search-box input {
+  min-width: 0;
+}
+.search-button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 20px;
+  background: linear-gradient(180deg, #ef5550, #d93f3a);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(185,45,42,.16);
+}
+.search-button:hover {
+  filter: brightness(.98);
+}
+.search-button:focus-visible {
+  outline: 3px solid rgba(91,140,255,.28);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .search-controls {
+    grid-template-columns: 1fr;
+  }
+  .search-box {
+    grid-template-columns: 1fr;
+  }
+  .search-button {
+    width: 100%;
+  }
+}

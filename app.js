@@ -30,6 +30,8 @@ const TYPE_THEMES = {
 
 const els = {
   search: document.getElementById('pokemon-search'),
+  searchForm: document.getElementById('pokemon-search-form'),
+  searchButton: document.getElementById('pokemon-search-button'),
   select: document.getElementById('pokemon-select'),
   status: document.getElementById('status'),
   result: document.getElementById('result'),
@@ -406,6 +408,44 @@ function populateSelect(list = pokemon) {
   });
   if ([...els.select.options].some(o => o.value === previous)) els.select.value = previous;
 }
+
+function submitPokemonSearch() {
+  const q = els.search.value.trim().toLowerCase();
+
+  if (!q) {
+    els.status.textContent = 'Type a Pokémon name to search.';
+    els.search.focus();
+    return;
+  }
+
+  const exact = pokemon.find(p => p.pokemon.toLowerCase() === q);
+  if (exact) {
+    choosePokemon(exact.id);
+    els.status.textContent = `${titleCase(exact.pokemon)} selected.`;
+    return;
+  }
+
+  const startsWith = pokemon.filter(p => p.pokemon.toLowerCase().startsWith(q));
+  if (startsWith.length) {
+    choosePokemon(startsWith[0].id);
+    els.status.textContent = `${titleCase(startsWith[0].pokemon)} selected.`;
+    return;
+  }
+
+  const contains = pokemon.filter(p => p.pokemon.toLowerCase().includes(q));
+  if (contains.length) {
+    choosePokemon(contains[0].id);
+    els.status.textContent = `${titleCase(contains[0].pokemon)} selected.`;
+    return;
+  }
+
+  els.status.textContent = 'No matching Pokémon found.';
+}
+
+els.searchForm.addEventListener('submit', event => {
+  event.preventDefault();
+  submitPokemonSearch();
+});
 
 els.search.addEventListener('input', () => {
   const q = els.search.value.trim().toLowerCase();

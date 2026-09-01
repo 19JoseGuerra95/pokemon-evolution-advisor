@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
   <main class="app-shell">
@@ -53,9 +53,12 @@
               <p class="section-desc">Search by name or select from the full list.</p>
             </div>
             <div class="search-controls">
-              <label class="sr-only" for="pokemon-search">Search Pokémon</label>
-              <input id="pokemon-search" type="search" placeholder="Search: Pikachu, Eevee, Bulbasaur…" autocomplete="off" />
-              <label class="sr-only" for="pokemon-select">Select a Pokémon</label>
+              <form id="pokemon-search-form" class="search-box" role="search">
+                <label class="sr-only" for="pokemon-search">Search Pokémon</label>
+                <input id="pokemon-search" type="search" placeholder="Search: Pikachu, Eevee, Bulbasaur…" autocomplete="off" />
+                <button id="pokemon-search-button" class="search-button" type="submit">Search</button>
+              </form>
+              <label class="sr-only" for="pokemon-select">Select Pokémon</label>
               <select id="pokemon-select" aria-label="Select a Pokémon">
                 <option value="">Select a Pokémon</option>
               </select>
@@ -185,6 +188,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
