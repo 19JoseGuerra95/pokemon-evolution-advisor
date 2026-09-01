@@ -598,3 +598,103 @@ input:focus, select:focus {
   .decision-panel { justify-items: center; text-align: center; }
   .top-left, .mini-screen { border-radius: 22px; }
 }
+
+
+/* FINAL POLISH: stronger Pokédex identity + layout fixes */
+.pokedex-shell {
+  background: linear-gradient(180deg, #ef4b46 0%, #d93935 100%);
+  border: 4px solid #b92d2a;
+  box-shadow: 0 28px 70px rgba(145,43,40,.20), inset 0 0 0 2px rgba(255,255,255,.12), inset 0 -12px 18px rgba(0,0,0,.10);
+}
+.pokedex-top { align-items: stretch; }
+.top-left, .mini-screen {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.30);
+}
+.main-light {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0 16%, #95ddff 18% 58%, #3f90c7 60% 100%);
+  box-shadow: 0 0 0 4px rgba(255,255,255,.86), 0 0 0 7px rgba(37,76,101,.30), inset 0 -3px 6px rgba(0,0,0,.12);
+}
+.small-light.red { background:#ff5d5a; }
+.small-light.yellow { background:#ffd54a; }
+.small-light.green { background:#61c96d; }
+.mini-label { white-space: nowrap; }
+.screen-bezel {
+  border: 4px solid #b7b1a8;
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.58), 0 10px 0 rgba(121,37,34,.10);
+}
+.screen-surface {
+  overflow: visible;
+  background: #fffdf8;
+}
+.screen-titlebar {
+  background: #ece9e2;
+  border-color: rgba(31,39,54,.10);
+}
+.search-panel, .chain-panel, .stats-panel, .decision-panel, .method-note, .empty-state,
+.mini-card, .pokemon-card {
+  background: #ffffff;
+}
+.chain-panel { overflow: visible; }
+.evolution-chain {
+  padding-top: 8px;
+  overflow-y: visible;
+}
+.chain-card {
+  min-height: 200px;
+  overflow: visible;
+}
+.chain-card.selected::after {
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+.chain-card img { margin-top: 8px; }
+.chain-stage-group { align-self: start; }
+.chain-arrow { align-self: center; }
+.result-head { position: relative; z-index: 2; }
+.head-pills { position: relative; z-index: 2; }
+
+/* remove any accidental overlap from flex/grid children */
+.result, .chain-panel, .insight-grid, .pokemon-flow, .stats-panel, .decision-panel { min-width:0; }
+.evolution-chain > * { min-width:0; }
+
+/* Pokédex controls at the bottom */
+.pokedex-footer {
+  margin-top: 14px;
+  padding: 14px 10px 2px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+.pokedex-footer::before {
+  content:"";
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4b5668 0 18%, #222b3a 20% 100%);
+  border: 4px solid rgba(255,255,255,.24);
+  box-shadow: inset 0 -5px 8px rgba(0,0,0,.25);
+}
+.footer-lights { justify-self:end; align-items:center; }
+.footer-lights span:nth-child(1){background:#64b8ff;}
+.footer-lights span:nth-child(2){background:#ffd54a;}
+.footer-lights span:nth-child(3){background:#66cf76;}
+
+/* colored retro control strip */
+.screen-surface::after {
+  content:"";
+  display:block;
+  height:14px;
+  margin-top:18px;
+  border-radius:999px;
+  background: linear-gradient(90deg,#58b8ff 0 24%,#ffd54a 24% 49%,#67c970 49% 74%,#ef5a54 74% 100%);
+  opacity:.9;
+}
+
+@media (max-width: 760px) {
+  .pokedex-footer { grid-template-columns:auto 1fr; }
+  .footer-lights { grid-column:1/-1; justify-self:start; }
+  .chain-card { min-height: 190px; }
+}
