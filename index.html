@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="EvoLens helps you compare Pokémon evolutions using the supplied dataset." />
+  <title>EvoLens — Pokémon Evolution Advisor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">POKÉMON EVOLUTION ADVISOR</p>
+        <h1>EvoLens</h1>
+        <p class="subtitle">Choose a Pokémon. Compare its next evolution. Decide if the upgrade is worth it.</p>
+      </div>
+      <div class="hero-badge" aria-hidden="true">◉</div>
+    </header>
+
+    <section class="search-panel" aria-labelledby="search-title">
+      <div>
+        <p class="section-kicker">STEP 01</p>
+        <h2 id="search-title">Which Pokémon are you considering?</h2>
+      </div>
+      <div class="search-controls">
+        <label class="sr-only" for="pokemon-search">Search Pokémon</label>
+        <input id="pokemon-search" type="search" placeholder="Try Pikachu, Eevee, Bulbasaur…" autocomplete="off" />
+        <label class="sr-only" for="pokemon-select">Select Pokémon</label>
+        <select id="pokemon-select" aria-label="Select a Pokémon">
+          <option value="">Select a Pokémon</option>
+        </select>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section id="result" class="result hidden" aria-live="polite">
+      <div class="comparison-heading">
+        <div>
+          <p class="section-kicker">STEP 02</p>
+          <h2>Evolution comparison</h2>
+        </div>
+        <span id="generation-pill" class="pill"></span>
+      </div>
+
+      <div class="pokemon-flow">
+        <article class="pokemon-card" id="current-card">
+          <p class="card-label">CURRENT</p>
+          <img id="current-image" alt="" />
+          <h3 id="current-name"></h3>
+          <div id="current-types" class="type-row"></div>
+          <p id="current-meta" class="meta"></p>
+        </article>
+
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+        <article class="pokemon-card emphasis" id="next-card">
+          <p class="card-label">NEXT EVOLUTION</p>
+          <img id="next-image" alt="" />
+          <h3 id="next-name"></h3>
+          <div id="next-types" class="type-row"></div>
+          <p id="next-meta" class="meta"></p>
+          <div id="branch-buttons" class="branch-buttons"></div>
+        </article>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stats-title-row">
+          <div>
+            <p class="section-kicker">STEP 03</p>
+            <h2>What changes?</h2>
+          </div>
+          <div class="legend" aria-label="Legend">
+            <span><i class="legend-dot current"></i>Current</span>
+            <span><i class="legend-dot next"></i>Evolution</span>
+          </div>
+        </div>
+        <div id="stats-grid" class="stats-grid"></div>
+      </div>
+
+      <section class="decision-panel" aria-labelledby="decision-title">
+        <div class="score-ring" id="score-ring">
+          <span id="score-value">0</span>
+          <small>/100</small>
+        </div>
+        <div class="decision-copy">
+          <p class="section-kicker">FINAL VERDICT</p>
+          <h2 id="decision-title">Should I evolve this Pokémon?</h2>
+          <div id="decision-badge" class="decision-badge"></div>
+          <p id="decision-text"></p>
+          <p id="decision-note" class="decision-note"></p>
+        </div>
+      </section>
+
+      <details class="method-note">
+        <summary>How is the Evolution Score calculated?</summary>
+        <p>The score is a simple decision aid based on the percentage increase in total base stats from the selected Pokémon to the chosen next evolution. It is not a prediction of battle performance or player preference.</p>
+      </details>
+    </section>
+
+    <section id="final-form" class="empty-state">
+      <div class="empty-icon">◒</div>
+      <h2>Start with a Pokémon</h2>
+      <p>Your comparison will appear here.</p>
+    </section>
+
+    <footer>
+      <p>Built from the supplied Pokémon dataset for the AI in Accounting case assignment.</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
