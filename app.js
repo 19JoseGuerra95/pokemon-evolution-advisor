@@ -458,7 +458,7 @@ async function loadTCGCards(p) {
   const token = ++tcgRequestToken;
   els.tcgCards.innerHTML = '';
   els.tcgLoading.style.display = 'block';
-  els.tcgLoading.textContent = `Loading real ${titleCase(p.pokemon)} cards and market prices…`;
+  els.tcgLoading.textContent = `Finding the 3 most valuable ${titleCase(p.pokemon)} cards…`;
 
   try {
     const name = String(p.pokemon || '').replaceAll('"', '\\"');
@@ -476,23 +476,25 @@ async function loadTCGCards(p) {
     const exact = cards.filter(card => String(card.name || '').toLowerCase() === String(p.pokemon || '').toLowerCase());
     const displayPool = exact.length >= 4 ? exact : cards;
 
-    // Prioritize cards with a price, then newer release dates.
-    displayPool.sort((a, b) => {
-      const aHas = bestCardPrice(a) ? 1 : 0;
-      const bHas = bestCardPrice(b) ? 1 : 0;
-      if (aHas !== bHas) return bHas - aHas;
-      const aDate = a?.set?.releaseDate || '';
-      const bDate = b?.set?.releaseDate || '';
-      return bDate.localeCompare(aDate);
-    });
+    // Rank the three most valuable cards for whichever Pokémon is selected.
+    // Cardmarket (€) is preferred for a consistent European-market basis.
+    // TCGPlayer ($) is used only when fewer than three Cardmarket-priced cards are available.
+    const cardmarketCards = displayPool
+      .filter(card => cardMarketPrice(card))
+      .sort((a, b) => cardMarketPrice(b).value - cardMarketPrice(a).value);
 
-    // Remove duplicate card IDs and keep a compact set.
+    const tcgFallbackCards = displayPool
+      .filter(card => !cardMarketPrice(card) && tcgPlayerPrice(card))
+      .sort((a, b) => tcgPlayerPrice(b).value - tcgPlayerPrice(a).value);
+
+    const ranked = [...cardmarketCards, ...tcgFallbackCards];
+
     const seen = new Set();
-    cards = displayPool.filter(card => {
+    cards = ranked.filter(card => {
       if (!card?.id || seen.has(card.id)) return false;
       seen.add(card.id);
       return true;
-    }).slice(0, 6);
+    }).slice(0, 3);
 
     els.tcgLoading.style.display = 'none';
 
