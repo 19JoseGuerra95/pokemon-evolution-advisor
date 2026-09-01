@@ -454,6 +454,27 @@ function renderTCGCard(card) {
     </article>`;
 }
 
+async function fetchTCGQuery(query) {
+  const params = new URLSearchParams({
+    q: query,
+    pageSize: '250'
+  });
+
+  const response = await fetch(`https://api.pokemontcg.io/v2/cards?${params.toString()}`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Pokémon TCG API HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  const payload = await response.json();
+  return Array.isArray(payload.data) ? payload.data : [];
+}
+
 async function loadTCGCards(p) {
   const token = ++tcgRequestToken;
   els.tcgCards.innerHTML = '';
@@ -461,28 +482,43 @@ async function loadTCGCards(p) {
   els.tcgLoading.textContent = `Finding the 3 most valuable ${titleCase(p.pokemon)} cards…`;
 
   try {
-    const name = String(p.pokemon || '').replaceAll('"', '\\"');
-    const url = `https://api.pokemontcg.io/v2/cards?q=name:%22${encodeURIComponent(name)}%22&pageSize=60&orderBy=-set.releaseDate`;
-    const response = await fetch(url);
+    const pokedexNumber = num(p.species_id) || num(p.id);
+    const cleanName = String(p.pokemon || '').trim().toLowerCase();
 
-    if (!response.ok) throw new Error(`Pokémon TCG API HTTP ${response.status}`);
-    const payload = await response.json();
+    let cards = [];
+
+    // First choice: National Pokédex number. This is more reliable than card-name
+    // matching because TCG cards can have suffixes such as ex, V, GX, VMAX, etc.
+    if (pokedexNumber != null) {
+      try {
+        cards = await fetchTCGQuery(`nationalPokedexNumbers:${pokedexNumber}`);
+      } catch (firstError) {
+        console.warn('Pokédex-number TCG query failed; trying name search.', firstError);
+      }
+    }
+
+    // Fallback: simple documented Lucene-style name query.
+    if (!cards.length) {
+      cards = await fetchTCGQuery(`name:${cleanName}`);
+    }
 
     if (token !== tcgRequestToken) return;
 
-    let cards = Array.isArray(payload.data) ? payload.data : [];
+    // Keep cards that actually refer to the selected Pokémon whenever Pokédex
+    // numbers are available in the returned data.
+    const matchedByDex = pokedexNumber == null ? [] : cards.filter(card =>
+      Array.isArray(card.nationalPokedexNumbers) &&
+      card.nationalPokedexNumbers.map(Number).includes(Number(pokedexNumber))
+    );
 
-    // Prefer exact card names first. If that leaves too few cards, include close variants.
-    const exact = cards.filter(card => String(card.name || '').toLowerCase() === String(p.pokemon || '').toLowerCase());
-    const displayPool = exact.length >= 4 ? exact : cards;
+    const displayPool = matchedByDex.length ? matchedByDex : cards;
 
-    // Rank the three most valuable cards for whichever Pokémon is selected.
-    // Cardmarket (€) is preferred for a consistent European-market basis.
-    // TCGPlayer ($) is used only when fewer than three Cardmarket-priced cards are available.
+    // Rank by Cardmarket euro data first.
     const cardmarketCards = displayPool
       .filter(card => cardMarketPrice(card))
       .sort((a, b) => cardMarketPrice(b).value - cardMarketPrice(a).value);
 
+    // Only use TCGPlayer-priced cards when Cardmarket supplies fewer than 3.
     const tcgFallbackCards = displayPool
       .filter(card => !cardMarketPrice(card) && tcgPlayerPrice(card))
       .sort((a, b) => tcgPlayerPrice(b).value - tcgPlayerPrice(a).value);
@@ -490,7 +526,7 @@ async function loadTCGCards(p) {
     const ranked = [...cardmarketCards, ...tcgFallbackCards];
 
     const seen = new Set();
-    cards = ranked.filter(card => {
+    const topCards = ranked.filter(card => {
       if (!card?.id || seen.has(card.id)) return false;
       seen.add(card.id);
       return true;
@@ -498,18 +534,33 @@ async function loadTCGCards(p) {
 
     els.tcgLoading.style.display = 'none';
 
-    if (!cards.length) {
-      els.tcgCards.innerHTML = '<p class="tcg-message">No Pokémon TCG cards were found for this Pokémon.</p>';
+    if (!topCards.length) {
+      els.tcgCards.innerHTML =
+        '<p class="tcg-message">Cards were found, but no current Cardmarket or TCGPlayer price data is available for this Pokémon.</p>';
       return;
     }
 
-    els.tcgCards.innerHTML = cards.map(renderTCGCard).join('');
+    els.tcgCards.innerHTML = topCards.map(renderTCGCard).join('');
   } catch (error) {
     console.error(error);
     if (token !== tcgRequestToken) return;
-    els.tcgLoading.style.display = 'block';
-    els.tcgLoading.textContent = 'Trading-card data is temporarily unavailable. The evolution analysis still works normally.';
+
     els.tcgCards.innerHTML = '';
+    els.tcgLoading.style.display = 'block';
+
+    if (error?.status === 429) {
+      els.tcgLoading.textContent =
+        'The trading-card service rate limit was reached. Wait a moment and select the Pokémon again.';
+    } else if (error?.status >= 500) {
+      els.tcgLoading.textContent =
+        'The trading-card service is temporarily unavailable. Try again shortly.';
+    } else if (error?.status === 400) {
+      els.tcgLoading.textContent =
+        'The trading-card service rejected this search. Try another Pokémon or refresh the page.';
+    } else {
+      els.tcgLoading.textContent =
+        'Trading-card data could not be loaded from the external service. The evolution analysis still works normally.';
+    }
   }
 }
 
