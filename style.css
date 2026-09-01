@@ -698,3 +698,35 @@ input:focus, select:focus {
   .footer-lights { grid-column:1/-1; justify-self:start; }
   .chain-card { min-height: 190px; }
 }
+
+
+/* FINAL OVERLAP FIX */
+.chain-panel {
+  position: relative;
+  z-index: 3;
+  overflow: hidden;
+  isolation: isolate;
+}
+.evolution-chain {
+  position: relative;
+  z-index: 2;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 14px 2px 12px;
+}
+.chain-card {
+  overflow: hidden;
+}
+.chain-card.selected::after {
+  top: 8px;
+  right: 8px;
+}
+.insight-grid {
+  position: relative;
+  z-index: 1;
+  clear: both;
+}
+.mini-card {
+  position: relative;
+  overflow: hidden;
+}
