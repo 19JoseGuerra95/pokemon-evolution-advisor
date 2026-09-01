@@ -3,30 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="EvoLens helps you compare Pokémon evolutions using the supplied dataset." />
+  <meta name="description" content="EvoLens helps you compare Pokémon evolutions and decide whether evolving is worth it." />
   <title>EvoLens — Pokémon Evolution Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="bg-orb orb-a" aria-hidden="true"></div>
+  <div class="bg-orb orb-b" aria-hidden="true"></div>
+
   <main class="app-shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">POKÉMON EVOLUTION ADVISOR</p>
+    <header class="hero panel">
+      <div class="hero-copy">
+        <p class="eyebrow">AI-POWERED POKÉDEX EXPERIENCE</p>
         <h1>EvoLens</h1>
-        <p class="subtitle">Choose a Pokémon. Compare its next evolution. Decide if the upgrade is worth it.</p>
+        <p class="subtitle">A Pokémon evolution advisor that compares stats, shows the full evolution chain, and helps answer one question: <strong>Should I evolve this Pokémon?</strong></p>
+        <div class="hero-tags">
+          <span class="tag">Full evolution chain</span>
+          <span class="tag">Image-based overview</span>
+          <span class="tag">Decision score</span>
+        </div>
       </div>
-      <div class="hero-badge" aria-hidden="true">◉</div>
+      <div class="hero-device" aria-hidden="true">
+        <div class="device-toplights">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="device-screen">
+          <div class="pokeball"></div>
+          <div class="radar radar-1"></div>
+          <div class="radar radar-2"></div>
+          <div class="radar radar-3"></div>
+          <p>EVOLUTION<br>ANALYZER</p>
+        </div>
+      </div>
     </header>
 
-    <section class="search-panel" aria-labelledby="search-title">
+    <section class="search-panel panel" aria-labelledby="search-title">
       <div>
         <p class="section-kicker">STEP 01</p>
-        <h2 id="search-title">Which Pokémon are you considering?</h2>
+        <h2 id="search-title">Choose your Pokémon</h2>
+        <p class="section-desc">Search by name or select from the full list.</p>
       </div>
       <div class="search-controls">
         <label class="sr-only" for="pokemon-search">Search Pokémon</label>
-        <input id="pokemon-search" type="search" placeholder="Try Pikachu, Eevee, Bulbasaur…" autocomplete="off" />
-        <label class="sr-only" for="pokemon-select">Select Pokémon</label>
+        <input id="pokemon-search" type="search" placeholder="Search: Pikachu, Eevee, Bulbasaur…" autocomplete="off" />
+        <label class="sr-only" for="pokemon-select">Select a Pokémon</label>
         <select id="pokemon-select" aria-label="Select a Pokémon">
           <option value="">Select a Pokémon</option>
         </select>
@@ -35,40 +58,81 @@
     </section>
 
     <section id="result" class="result hidden" aria-live="polite">
-      <div class="comparison-heading">
+      <div class="result-head">
         <div>
           <p class="section-kicker">STEP 02</p>
-          <h2>Evolution comparison</h2>
+          <h2>Evolution analysis</h2>
         </div>
-        <span id="generation-pill" class="pill"></span>
+        <div class="head-pills">
+          <span id="generation-pill" class="pill"></span>
+          <span id="type-pill" class="pill accent-pill">Type theme</span>
+        </div>
+      </div>
+
+      <section class="chain-panel panel" aria-labelledby="chain-title">
+        <div class="chain-heading">
+          <div>
+            <p class="section-kicker">FULL CHAIN</p>
+            <h2 id="chain-title">Evolution path</h2>
+          </div>
+          <p class="chain-help">The selected Pokémon is highlighted. Click any card to analyze that stage.</p>
+        </div>
+        <div id="evolution-chain" class="evolution-chain"></div>
+      </section>
+
+      <div class="insight-grid">
+        <article class="mini-card panel">
+          <p class="mini-label">Current total</p>
+          <strong id="current-total">—</strong>
+          <span>Total base stats</span>
+        </article>
+        <article class="mini-card panel">
+          <p class="mini-label">Next evolution total</p>
+          <strong id="next-total">—</strong>
+          <span>Total base stats</span>
+        </article>
+        <article class="mini-card panel highlight">
+          <p class="mini-label">Overall gain</p>
+          <strong id="total-gain">—</strong>
+          <span>Difference in stats</span>
+        </article>
       </div>
 
       <div class="pokemon-flow">
-        <article class="pokemon-card" id="current-card">
+        <article class="pokemon-card panel" id="current-card">
           <p class="card-label">CURRENT</p>
           <img id="current-image" alt="" />
           <h3 id="current-name"></h3>
           <div id="current-types" class="type-row"></div>
           <p id="current-meta" class="meta"></p>
+          <div class="ability-box">
+            <p class="ability-title">Abilities</p>
+            <p id="current-abilities" class="ability-text"></p>
+          </div>
         </article>
 
         <div class="flow-arrow" aria-hidden="true">→</div>
 
-        <article class="pokemon-card emphasis" id="next-card">
+        <article class="pokemon-card panel emphasis" id="next-card">
           <p class="card-label">NEXT EVOLUTION</p>
           <img id="next-image" alt="" />
           <h3 id="next-name"></h3>
           <div id="next-types" class="type-row"></div>
           <p id="next-meta" class="meta"></p>
+          <div class="ability-box">
+            <p class="ability-title">Abilities</p>
+            <p id="next-abilities" class="ability-text"></p>
+          </div>
           <div id="branch-buttons" class="branch-buttons"></div>
         </article>
       </div>
 
-      <div class="stats-panel">
+      <section class="stats-panel panel">
         <div class="stats-title-row">
           <div>
             <p class="section-kicker">STEP 03</p>
-            <h2>What changes?</h2>
+            <h2>Stat comparison</h2>
+            <p class="section-desc">Current Pokémon vs. the selected next evolution.</p>
           </div>
           <div class="legend" aria-label="Legend">
             <span><i class="legend-dot current"></i>Current</span>
@@ -76,9 +140,9 @@
           </div>
         </div>
         <div id="stats-grid" class="stats-grid"></div>
-      </div>
+      </section>
 
-      <section class="decision-panel" aria-labelledby="decision-title">
+      <section class="decision-panel panel" id="decision-panel" aria-labelledby="decision-title">
         <div class="score-ring" id="score-ring">
           <span id="score-value">0</span>
           <small>/100</small>
@@ -92,19 +156,19 @@
         </div>
       </section>
 
-      <details class="method-note">
+      <details class="method-note panel">
         <summary>How is the Evolution Score calculated?</summary>
-        <p>The score is a simple decision aid based on the percentage increase in total base stats from the selected Pokémon to the chosen next evolution. It is not a prediction of battle performance or player preference.</p>
+        <p>The Evolution Score is based on the percentage increase in total base stats from the selected Pokémon to the selected next evolution. It is a simple decision aid, not a competitive battle simulator.</p>
       </details>
     </section>
 
-    <section id="final-form" class="empty-state">
-      <div class="empty-icon">◒</div>
+    <section id="final-form" class="empty-state panel">
+      <div class="empty-icon">◉</div>
       <h2>Start with a Pokémon</h2>
-      <p>Your comparison will appear here.</p>
+      <p>Pick a Pokémon to unlock the full evolution view, stat comparison, and final recommendation.</p>
     </section>
 
-    <footer>
+    <footer class="site-footer">
       <p>Built from the supplied Pokémon dataset for the AI in Accounting case assignment.</p>
     </footer>
   </main>

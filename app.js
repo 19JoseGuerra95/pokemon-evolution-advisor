@@ -1,38 +1,66 @@
-const els = {
-  search: document.querySelector('#pokemon-search'),
-  select: document.querySelector('#pokemon-select'),
-  status: document.querySelector('#status'),
-  result: document.querySelector('#result'),
-  empty: document.querySelector('#final-form'),
-  generation: document.querySelector('#generation-pill'),
-  currentCard: document.querySelector('#current-card'),
-  currentImage: document.querySelector('#current-image'),
-  currentName: document.querySelector('#current-name'),
-  currentTypes: document.querySelector('#current-types'),
-  currentMeta: document.querySelector('#current-meta'),
-  nextCard: document.querySelector('#next-card'),
-  nextImage: document.querySelector('#next-image'),
-  nextName: document.querySelector('#next-name'),
-  nextTypes: document.querySelector('#next-types'),
-  nextMeta: document.querySelector('#next-meta'),
-  branchButtons: document.querySelector('#branch-buttons'),
-  statsGrid: document.querySelector('#stats-grid'),
-  scoreRing: document.querySelector('#score-ring'),
-  scoreValue: document.querySelector('#score-value'),
-  decisionPanel: document.querySelector('.decision-panel'),
-  decisionBadge: document.querySelector('#decision-badge'),
-  decisionText: document.querySelector('#decision-text'),
-  decisionNote: document.querySelector('#decision-note')
-};
-
 const STAT_FIELDS = [
   ['HP', 'hp'],
   ['Attack', 'attack'],
   ['Defense', 'defense'],
-  ['Sp. Atk', 'special_attack'],
-  ['Sp. Def', 'special_defense'],
+  ['Sp. Attack', 'special_attack'],
+  ['Sp. Defense', 'special_defense'],
   ['Speed', 'speed']
 ];
+
+const TYPE_THEMES = {
+  bug: ['#9cc93b', 'rgba(156,201,59,.18)'],
+  dark: ['#6b7280', 'rgba(107,114,128,.18)'],
+  dragon: ['#5b8cff', 'rgba(91,140,255,.18)'],
+  electric: ['#f8c72a', 'rgba(248,199,42,.18)'],
+  fairy: ['#f38ed0', 'rgba(243,142,208,.18)'],
+  fighting: ['#ef6461', 'rgba(239,100,97,.18)'],
+  fire: ['#ff7a45', 'rgba(255,122,69,.18)'],
+  flying: ['#85b6ff', 'rgba(133,182,255,.18)'],
+  ghost: ['#8971e8', 'rgba(137,113,232,.18)'],
+  grass: ['#56c271', 'rgba(86,194,113,.18)'],
+  ground: ['#c99a5a', 'rgba(201,154,90,.18)'],
+  ice: ['#60d7e9', 'rgba(96,215,233,.18)'],
+  normal: ['#a8a29e', 'rgba(168,162,158,.18)'],
+  poison: ['#bc71f0', 'rgba(188,113,240,.18)'],
+  psychic: ['#ff6eb0', 'rgba(255,110,176,.18)'],
+  rock: ['#c4a461', 'rgba(196,164,97,.18)'],
+  steel: ['#9aa9c7', 'rgba(154,169,199,.18)'],
+  water: ['#4ea7ff', 'rgba(78,167,255,.18)']
+};
+
+const els = {
+  search: document.getElementById('pokemon-search'),
+  select: document.getElementById('pokemon-select'),
+  status: document.getElementById('status'),
+  result: document.getElementById('result'),
+  empty: document.getElementById('final-form'),
+  generation: document.getElementById('generation-pill'),
+  typePill: document.getElementById('type-pill'),
+  evolutionChain: document.getElementById('evolution-chain'),
+  currentCard: document.getElementById('current-card'),
+  nextCard: document.getElementById('next-card'),
+  currentImage: document.getElementById('current-image'),
+  nextImage: document.getElementById('next-image'),
+  currentName: document.getElementById('current-name'),
+  nextName: document.getElementById('next-name'),
+  currentTypes: document.getElementById('current-types'),
+  nextTypes: document.getElementById('next-types'),
+  currentMeta: document.getElementById('current-meta'),
+  nextMeta: document.getElementById('next-meta'),
+  currentAbilities: document.getElementById('current-abilities'),
+  nextAbilities: document.getElementById('next-abilities'),
+  branchButtons: document.getElementById('branch-buttons'),
+  currentTotal: document.getElementById('current-total'),
+  nextTotal: document.getElementById('next-total'),
+  totalGain: document.getElementById('total-gain'),
+  statsGrid: document.getElementById('stats-grid'),
+  decisionPanel: document.getElementById('decision-panel'),
+  scoreRing: document.getElementById('score-ring'),
+  scoreValue: document.getElementById('score-value'),
+  decisionBadge: document.getElementById('decision-badge'),
+  decisionText: document.getElementById('decision-text'),
+  decisionNote: document.getElementById('decision-note')
+};
 
 let pokemon = [];
 let selected = null;
@@ -40,35 +68,48 @@ let selectedEvolution = null;
 
 function parseCSV(text) {
   const rows = [];
-  let row = [], cell = '', quoted = false;
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+    const char = text[i];
     const next = text[i + 1];
-    if (ch === '"' && quoted && next === '"') { cell += '"'; i++; continue; }
-    if (ch === '"') { quoted = !quoted; continue; }
-    if (ch === ',' && !quoted) { row.push(cell); cell = ''; continue; }
-    if ((ch === '\n' || ch === '\r') && !quoted) {
-      if (ch === '\r' && next === '\n') i++;
-      row.push(cell); cell = '';
-      if (row.some(v => v !== '')) rows.push(row);
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i++;
+      row.push(cell);
+      if (row.length > 1 || row[0] !== '') rows.push(row);
       row = [];
-      continue;
+      cell = '';
+    } else {
+      cell += char;
     }
-    cell += ch;
   }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  if (!rows.length) return [];
-  const headers = rows.shift().map(h => h.trim());
-  return rows.map(values => Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ''])));
+  if (cell.length || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  const headers = rows.shift() || [];
+  return rows.map(cols => Object.fromEntries(headers.map((h, i) => [h, cols[i] ?? ''])));
 }
 
 function num(value) {
+  if (value === undefined || value === null || value === '' || value === 'NA') return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-function titleCase(value) {
-  return String(value || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+function titleCase(text = '') {
+  return String(text).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function artworkUrl(p) {
@@ -80,13 +121,109 @@ function totalStats(p) {
   return STAT_FIELDS.reduce((sum, [, key]) => sum + (num(p[key]) || 0), 0);
 }
 
+function abilitiesText(p) {
+  const parts = [p.ability_1, p.ability_2, p.ability_hidden]
+    .filter(Boolean)
+    .filter(v => v !== 'NA')
+    .map(titleCase);
+  return parts.length ? parts.join(' · ') : 'No ability data available';
+}
+
 function nextEvolutions(p) {
   const speciesId = num(p.species_id);
   return pokemon.filter(candidate => num(candidate.evolves_from_species_id) === speciesId);
 }
 
+function chainMembers(p) {
+  const chainId = num(p.evolution_chain_id);
+  if (chainId == null) return [p];
+  return pokemon.filter(candidate => num(candidate.evolution_chain_id) === chainId);
+}
+
+function chainRoots(members) {
+  const species = new Set(members.map(p => num(p.species_id)));
+  return members.filter(p => {
+    const parent = num(p.evolves_from_species_id);
+    return parent == null || !species.has(parent);
+  });
+}
+
+function childrenOf(p, members) {
+  const speciesId = num(p.species_id);
+  return members.filter(candidate => num(candidate.evolves_from_species_id) === speciesId);
+}
+
+function updateTheme(p) {
+  const type = (p.type_1 || '').toLowerCase();
+  const [main, soft] = TYPE_THEMES[type] || [p.color_1 || '#5b8cff', 'rgba(91,140,255,.18)'];
+  document.documentElement.style.setProperty('--theme-main', main);
+  document.documentElement.style.setProperty('--theme-soft', soft);
+  els.typePill.textContent = `${titleCase(p.type_1 || 'Unknown')} theme`;
+}
+
+function chainCard(p, depth) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = `chain-card${selected && String(p.id) === String(selected.id) ? ' selected' : ''}`;
+  card.style.setProperty('--pokemon-color', p.color_1 || '#bdbdbd');
+  card.setAttribute('aria-label', `Select ${titleCase(p.pokemon)}`);
+  card.innerHTML = `
+    <span class="chain-stage">STAGE ${depth + 1}</span>
+    <img src="${artworkUrl(p)}" alt="${titleCase(p.pokemon)} artwork" />
+    <strong>${titleCase(p.pokemon)}</strong>
+    <span class="chain-id">#${String(p.id).padStart(3, '0')}</span>`;
+  const image = card.querySelector('img');
+  image.addEventListener('error', () => { image.style.visibility = 'hidden'; });
+  card.addEventListener('click', () => choosePokemon(p.id));
+  return card;
+}
+
+function renderEvolutionChain(p) {
+  els.evolutionChain.innerHTML = '';
+  const members = chainMembers(p);
+  const roots = chainRoots(members);
+  if (!members.length || !roots.length) {
+    els.evolutionChain.innerHTML = '<p class="meta">No evolution-chain data is available.</p>';
+    return;
+  }
+
+  const columns = [];
+  const visited = new Set();
+  let level = roots;
+  let depth = 0;
+
+  while (level.length && depth < 8) {
+    columns.push(level);
+    const next = [];
+    level.forEach(member => {
+      const key = String(member.species_id);
+      if (visited.has(key)) return;
+      visited.add(key);
+      childrenOf(member, members).forEach(child => {
+        if (!visited.has(String(child.species_id))) next.push(child);
+      });
+    });
+    level = next;
+    depth++;
+  }
+
+  columns.forEach((stage, index) => {
+    if (index > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'chain-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '→';
+      els.evolutionChain.appendChild(arrow);
+    }
+    const group = document.createElement('div');
+    group.className = `chain-stage-group${stage.length > 1 ? ' branched' : ''}`;
+    stage.forEach(member => group.appendChild(chainCard(member, index)));
+    els.evolutionChain.appendChild(group);
+  });
+}
+
 function typeChip(type, color) {
-  if (!type) return '';
+  if (!type || type === 'NA') return '';
   return `<span class="type-chip" style="--chip:${color || '#777'}">${titleCase(type)}</span>`;
 }
 
@@ -100,6 +237,7 @@ function fillCard(prefix, p) {
   const types = prefix === 'current' ? els.currentTypes : els.nextTypes;
   const meta = prefix === 'current' ? els.currentMeta : els.nextMeta;
   const card = prefix === 'current' ? els.currentCard : els.nextCard;
+  const ability = prefix === 'current' ? els.currentAbilities : els.nextAbilities;
 
   image.src = artworkUrl(p);
   image.alt = `${titleCase(p.pokemon)} artwork`;
@@ -110,6 +248,7 @@ function fillCard(prefix, p) {
   const heightM = num(p.height) != null ? (num(p.height) / 10).toFixed(1) : '—';
   const weightKg = num(p.weight) != null ? (num(p.weight) / 10).toFixed(1) : '—';
   meta.textContent = `#${String(p.id).padStart(3, '0')} · ${heightM} m · ${weightKg} kg`;
+  ability.textContent = abilitiesText(p);
   card.style.setProperty('--pokemon-color', p.color_1 || '#bdbdbd');
 }
 
@@ -127,6 +266,15 @@ function renderBranches(options) {
     });
     els.branchButtons.appendChild(button);
   });
+}
+
+function renderInsightCards(current, next) {
+  const currentTotal = totalStats(current);
+  const nextTotal = totalStats(next);
+  const gain = nextTotal - currentTotal;
+  els.currentTotal.textContent = currentTotal;
+  els.nextTotal.textContent = nextTotal;
+  els.totalGain.textContent = `${gain >= 0 ? '+' : ''}${gain}`;
 }
 
 function renderStats(current, next) {
@@ -155,7 +303,6 @@ function evolutionScore(current, next) {
   const nextTotal = totalStats(next);
   if (currentTotal <= 0) return { score: 0, pct: 0, currentTotal, nextTotal };
   const pct = ((nextTotal - currentTotal) / currentTotal) * 100;
-  // 0% improvement => 40, 30% improvement => 100. Clamp to keep the display intuitive.
   const score = Math.max(0, Math.min(100, Math.round(40 + pct * 2)));
   return { score, pct, currentTotal, nextTotal };
 }
@@ -165,33 +312,33 @@ function renderDecision(current, next) {
   const roundedPct = Math.round(pct * 10) / 10;
   const diff = nextTotal - currentTotal;
   let verdict = 'EVOLVE';
-  let color = '#247a4b';
+  let color = 'var(--good)';
   let text = `The next evolution adds ${diff} total base-stat points (${roundedPct >= 0 ? '+' : ''}${roundedPct}%).`;
 
   if (diff <= 0) {
     verdict = 'WAIT / REVIEW';
-    color = '#a66a00';
+    color = 'var(--warn)';
     text = `The next evolution does not increase total base stats in this dataset (${roundedPct}%).`;
   } else if (roundedPct < 10) {
     verdict = 'SMALL UPGRADE';
-    color = '#a66a00';
-    text = `The next evolution improves total base stats by ${diff} points (+${roundedPct}%), but the increase is relatively modest.`;
+    color = 'var(--warn)';
+    text = `The next evolution improves total base stats by ${diff} points (+${roundedPct}%), but the gain is relatively modest.`;
   }
 
   els.scoreValue.textContent = score;
   els.scoreRing.style.setProperty('--score-deg', `${score * 3.6}deg`);
-  els.scoreRing.style.setProperty('--decision-color', color);
-  els.decisionPanel.style.setProperty('--decision-color', color);
-  els.decisionBadge.style.setProperty('--decision-color', color);
+  els.scoreRing.style.setProperty('--decision-color', `var(${color.replace('var(', '').replace(')', '')})`);
   els.decisionBadge.textContent = verdict;
   els.decisionText.textContent = text;
-  els.decisionNote.textContent = `Base-stat total: ${currentTotal} → ${nextTotal}. This recommendation uses the supplied stats only; it does not account for moves, evolution items, level requirements, or personal preference.`;
+  els.decisionNote.textContent = `Base-stat total: ${currentTotal} → ${nextTotal}. This recommendation uses the supplied stats only; it does not account for moves, level requirements, items, or personal preference.`;
 }
 
 function renderNoEvolution(p) {
   els.result.classList.remove('hidden');
   els.empty.classList.add('hidden');
+  updateTheme(p);
   els.generation.textContent = p.generation_id ? `Generation ${Math.round(num(p.generation_id))}` : 'Generation —';
+  renderEvolutionChain(p);
   fillCard('current', p);
 
   els.nextImage.removeAttribute('src');
@@ -200,16 +347,18 @@ function renderNoEvolution(p) {
   els.nextName.textContent = 'No next evolution';
   els.nextTypes.innerHTML = '';
   els.nextMeta.textContent = 'This dataset shows no Pokémon evolving directly from this species.';
-  els.nextCard.style.setProperty('--pokemon-color', '#bdbdbd');
+  els.nextAbilities.textContent = 'No next-evolution abilities available';
+  els.nextCard.style.setProperty('--pokemon-color', '#7f8aa2');
   els.branchButtons.innerHTML = '';
+  els.currentTotal.textContent = totalStats(p);
+  els.nextTotal.textContent = '—';
+  els.totalGain.textContent = '—';
   els.statsGrid.innerHTML = '<p class="meta">No next-stage stats are available to compare.</p>';
 
   els.scoreValue.textContent = '—';
   els.scoreRing.style.setProperty('--score-deg', '0deg');
-  els.scoreRing.style.setProperty('--decision-color', '#6c7068');
-  els.decisionPanel.style.setProperty('--decision-color', '#6c7068');
-  els.decisionBadge.style.setProperty('--decision-color', '#6c7068');
-  els.decisionBadge.textContent = 'FULLY EVOLVED / NO DIRECT EVOLUTION';
+  els.scoreRing.style.setProperty('--decision-color', '#7f8aa2');
+  els.decisionBadge.textContent = 'FINAL EVOLUTION';
   els.decisionText.textContent = `${titleCase(p.pokemon)} has no next evolution listed in the supplied dataset.`;
   els.decisionNote.textContent = 'No evolution recommendation can be calculated.';
 }
@@ -217,15 +366,21 @@ function renderNoEvolution(p) {
 function renderComparison() {
   if (!selected) return;
   const options = nextEvolutions(selected);
-  if (!options.length) { renderNoEvolution(selected); return; }
+  if (!options.length) {
+    renderNoEvolution(selected);
+    return;
+  }
   if (!selectedEvolution || !options.some(o => o.id === selectedEvolution.id)) selectedEvolution = options[0];
 
   els.result.classList.remove('hidden');
   els.empty.classList.add('hidden');
+  updateTheme(selected);
   els.generation.textContent = selected.generation_id ? `Generation ${Math.round(num(selected.generation_id))}` : 'Generation —';
+  renderEvolutionChain(selected);
   fillCard('current', selected);
   fillCard('next', selectedEvolution);
   renderBranches(options);
+  renderInsightCards(selected, selectedEvolution);
   renderStats(selected, selectedEvolution);
   renderDecision(selected, selectedEvolution);
 }
@@ -243,7 +398,7 @@ function choosePokemon(id) {
 function populateSelect(list = pokemon) {
   const previous = els.select.value;
   els.select.innerHTML = '<option value="">Select a Pokémon</option>';
-  list.slice(0, 811).forEach(p => {
+  list.forEach(p => {
     const option = document.createElement('option');
     option.value = p.id;
     option.textContent = `#${String(p.id).padStart(3, '0')} ${titleCase(p.pokemon)}`;
@@ -254,7 +409,11 @@ function populateSelect(list = pokemon) {
 
 els.search.addEventListener('input', () => {
   const q = els.search.value.trim().toLowerCase();
-  if (!q) { populateSelect(); els.status.textContent = ''; return; }
+  if (!q) {
+    populateSelect();
+    els.status.textContent = '';
+    return;
+  }
   const matches = pokemon.filter(p => p.pokemon.toLowerCase().includes(q));
   populateSelect(matches);
   els.status.textContent = matches.length ? `${matches.length} match${matches.length === 1 ? '' : 'es'} found.` : 'No matching Pokémon found.';
