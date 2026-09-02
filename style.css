@@ -952,3 +952,30 @@ input:focus, select:focus {
   font-size: .82rem;
   font-weight: 900;
 }
+
+
+/* POKÉMON CRIES */
+.cry-button {
+  margin: 2px auto 10px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fbf9f5;
+  color: var(--text);
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cry-button:hover {
+  background: var(--theme-soft);
+  border-color: var(--theme-main);
+}
+.cry-button:focus-visible {
+  outline: 3px solid rgba(91,140,255,.22);
+  outline-offset: 2px;
+}

@@ -51,6 +51,8 @@ const els = {
   nextMeta: document.getElementById('next-meta'),
   currentAbilities: document.getElementById('current-abilities'),
   nextAbilities: document.getElementById('next-abilities'),
+  currentCryButton: document.getElementById('current-cry-btn'),
+  nextCryButton: document.getElementById('next-cry-btn'),
   branchButtons: document.getElementById('branch-buttons'),
   currentTotal: document.getElementById('current-total'),
   nextTotal: document.getElementById('next-total'),
@@ -165,6 +167,46 @@ function updateTheme(p) {
   els.typePill.textContent = `${titleCase(p.type_1 || 'Unknown')} theme`;
 }
 
+
+let activeCry = null;
+
+function cryUrl(p, version = 'legacy') {
+  const id = num(p?.id);
+  if (!id) return '';
+  return `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/${version}/${id}.ogg`;
+}
+
+function playPokemonCry(p) {
+  if (!p) return;
+
+  if (activeCry) {
+    activeCry.pause();
+    activeCry.currentTime = 0;
+    activeCry = null;
+  }
+
+  const legacy = cryUrl(p, 'legacy');
+  const latest = cryUrl(p, 'latest');
+  if (!legacy && !latest) return;
+
+  const audio = new Audio(legacy || latest);
+  audio.volume = 0.65;
+  activeCry = audio;
+
+  let triedLatest = false;
+  audio.addEventListener('error', () => {
+    if (!triedLatest && latest) {
+      triedLatest = true;
+      audio.src = latest;
+      audio.play().catch(() => {});
+    }
+  });
+
+  audio.play().catch(error => {
+    console.warn('Pokémon cry could not be played.', error);
+  });
+}
+
 function chainCard(p, depth) {
   const card = document.createElement('button');
   card.type = 'button';
@@ -178,7 +220,10 @@ function chainCard(p, depth) {
     <span class="chain-id">#${String(p.id).padStart(3, '0')}</span>`;
   const image = card.querySelector('img');
   image.addEventListener('error', () => { image.style.visibility = 'hidden'; });
-  card.addEventListener('click', () => choosePokemon(p.id));
+  card.addEventListener('click', () => {
+    playPokemonCry(p);
+    choosePokemon(p.id);
+  });
   return card;
 }
 
@@ -580,6 +625,7 @@ function renderNoEvolution(p) {
   els.nextTypes.innerHTML = '';
   els.nextMeta.textContent = 'This dataset shows no Pokémon evolving directly from this species.';
   els.nextAbilities.textContent = 'No next-evolution abilities available';
+  els.nextCryButton.style.display = 'none';
   els.nextCard.style.setProperty('--pokemon-color', '#7f8aa2');
   els.branchButtons.innerHTML = '';
   els.currentTotal.textContent = totalStats(p);
@@ -612,6 +658,8 @@ function renderComparison() {
   renderEvolutionChain(selected);
   fillCard('current', selected);
   fillCard('next', selectedEvolution);
+  els.currentCryButton.style.display = 'inline-flex';
+  els.nextCryButton.style.display = 'inline-flex';
   renderBranches(options);
   renderInsightCards(selected, selectedEvolution);
   renderStats(selected, selectedEvolution);
@@ -676,6 +724,17 @@ function submitPokemonSearch() {
 els.searchForm.addEventListener('submit', event => {
   event.preventDefault();
   submitPokemonSearch();
+});
+
+
+els.currentCryButton.addEventListener('click', event => {
+  event.stopPropagation();
+  playPokemonCry(selected);
+});
+
+els.nextCryButton.addEventListener('click', event => {
+  event.stopPropagation();
+  playPokemonCry(selectedEvolution);
 });
 
 els.search.addEventListener('input', () => {
